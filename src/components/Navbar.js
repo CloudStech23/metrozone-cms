@@ -12,6 +12,12 @@ export default function Navbar() {
                         <li className="nav-item">
                             <a className="nav-link active" aria-current="page" href="/form">Add Data</a>
                         </li>
+                        <li className="nav-item">
+                            <a className="nav-link active" aria-current="page" href="/event">Event Data</a>
+                        </li>
+                        <li className="nav-item">
+                            <a className="nav-link active" aria-current="page" href="/home">Home Data</a>
+                        </li>
                     </ul>
                 </div>
             </div>
