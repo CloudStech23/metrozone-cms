@@ -123,19 +123,7 @@ const EventForm = () => {
                             required
                         />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="time">Time</label>
-                        <input
-                            type="text"
-                            id="time"
-                            name="time"
-                            className="form-control"
-                            value={event.time}
-                            onChange={handleInputChange}
-                            placeholder="Time"
-                            required
-                        />
-                    </div>
+                     
                     <div className="form-group">
                         <label htmlFor="category">Category</label>
                         <input
