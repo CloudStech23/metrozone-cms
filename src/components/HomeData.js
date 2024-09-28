@@ -88,16 +88,18 @@ function HomeData() {
                             required
                         ></textarea>
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="header_image">Header Image</label>
-                        <input
-                            type="file"
-                            className="form-control-file"
-                            id="header_image"
-                            onChange={handleImageChange}
-                            accept="image/*"
-                            required
-                        />
+                    <div className="form-group mb-2">
+                        <label htmlFor="header_image" className='col-sm-3 col-form-label'>Header Image</label>
+                        <div className="col-sm-9">
+                            <input
+                                type="file"
+                                className="form-control-file"
+                                id="header_image"
+                                onChange={handleImageChange}
+                                accept="image/*"
+                                required
+                            />
+                        </div>
                     </div>
 
                     <button type="submit" className="btn btn-primary mt-3" disabled={loading}>

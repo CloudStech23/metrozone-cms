@@ -11,15 +11,24 @@ function Eventcsr() {
         eventDate: '',
         eventVenue: '',
         partner: '',
+        beneficiary: '',  // New field: beneficiary
+        value: '',  // New field: value in numbers
+        quantity: '',  // New field: quantity in numbers
         images: [],
+        mainImage: '',
     });
     const [imageFiles, setImageFiles] = useState([]);
+    const [mainImageFile, setMainImageFile] = useState(null);
     const [imageInputCount, setImageInputCount] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     const handleInputChange = (event) => {
         setEventData({ ...eventData, [event.target.name]: event.target.value });
+    };
+
+    const handleMainImageChange = (event) => {
+        setMainImageFile(event.target.files[0]);
     };
 
     const handleImageChange = (event, index) => {
@@ -29,7 +38,7 @@ function Eventcsr() {
     };
 
     const addImageInput = () => {
-        setImageInputCount(imageInputCount + 1); // Add a new input field
+        setImageInputCount(imageInputCount + 1);
     };
 
     const uploadImages = async () => {
@@ -46,14 +55,25 @@ function Eventcsr() {
         return imageUrls;
     };
 
+    const uploadMainImage = async () => {
+        if (mainImageFile) {
+            const storageRef = ref(storage, `events/main/${mainImageFile.name}`);
+            await uploadBytes(storageRef, mainImageFile);
+            return await getDownloadURL(storageRef);
+        }
+        return '';
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
         try {
+            const mainImageUrl = await uploadMainImage();
             const imageUrls = await uploadImages();
             await addDoc(collection(db, 'events'), {
                 ...eventData,
+                mainImage: mainImageUrl,
                 images: imageUrls,
             });
             alert('Event added successfully!');
@@ -64,9 +84,14 @@ function Eventcsr() {
                 eventDate: '',
                 eventVenue: '',
                 partner: '',
+                beneficiary: '',
+                value: '',
+                quantity: '',
                 images: [],
+                mainImage: '',
             });
             setImageFiles([]);
+            setMainImageFile(null);
             setImageInputCount(1);
         } catch (e) {
             setError('Error adding event: ' + e.message);
@@ -78,17 +103,18 @@ function Eventcsr() {
     return (
         <div className="container mt-5">
             <h2>Upcoming Events</h2>
-            <form onSubmit={handleSubmit} className='needs-validation'>
+            <form onSubmit={handleSubmit} className="needs-validation">
                 <div className="row">
                     <div className="col-md-7">
-                        <div className="form-group">
-                            <label htmlFor="programType">Program Type</label>
+                        <div className="form-group mb-2">
+                            <label htmlFor="programType">Program Type <span className="text-danger">*</span></label>
                             <select
                                 className="form-control"
                                 id="programType"
                                 name="programType"
                                 value={eventData.programType}
                                 onChange={handleInputChange}
+                                required
                             >
                                 <option value="Education">Education Development</option>
                                 <option value="skillDevelopment">Skill Development</option>
@@ -98,8 +124,8 @@ function Eventcsr() {
                             </select>
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="title">Title <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>(Content should be only in English and character limit is 50 with space)</span></label>
+                        <div className="form-group mb-2">
+                            <label htmlFor="title">Title <span className="text-danger">*</span> <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>(Max 50 characters)</span></label>
                             <input
                                 type="text"
                                 className="form-control"
@@ -109,11 +135,27 @@ function Eventcsr() {
                                 value={eventData.title}
                                 onChange={handleInputChange}
                                 placeholder="Enter title"
+                                required
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="description">Description</label>
+                        {/* Partner */}
+                        <div className="form-group mb-2">
+                            <label htmlFor="partner">Partner <span className="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="partner"
+                                name="partner"
+                                value={eventData.partner}
+                                onChange={handleInputChange}
+                                placeholder="Enter partner"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group mb-2">
+                            <label htmlFor="description">Description <span className="text-danger">*</span></label>
                             <textarea
                                 className="form-control"
                                 id="description"
@@ -122,11 +164,58 @@ function Eventcsr() {
                                 value={eventData.description}
                                 onChange={handleInputChange}
                                 placeholder="Enter description"
+                                required
                             ></textarea>
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="eventDate">Event Date</label>
+
+
+                        <div className="form-group mb-2">
+                            <label htmlFor="beneficiary">Beneficiary <span className="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="beneficiary"
+                                name="beneficiary"
+                                value={eventData.beneficiary}
+                                onChange={handleInputChange}
+                                placeholder="Enter beneficiary"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group mb-2">
+                            <label htmlFor="value">Value <span className="text-danger">*</span></label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                id="value"
+                                name="value"
+                                value={eventData.value}
+                                onChange={handleInputChange}
+                                placeholder="Enter value in numbers"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group mb-2">
+                            <label htmlFor="quantity">Quantity <span className="text-danger">*</span></label>
+                            <input
+                                type="number"
+                                className="form-control"
+                                id="quantity"
+                                name="quantity"
+                                value={eventData.quantity}
+                                onChange={handleInputChange}
+                                placeholder="Enter quantity"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="col-md-5 mb-2">
+                        <div className="form-group mb-2">
+                            <label htmlFor="eventDate">Event Date <span className="text-danger">*</span></label>
                             <input
                                 type="date"
                                 className="form-control"
@@ -134,16 +223,42 @@ function Eventcsr() {
                                 name="eventDate"
                                 value={eventData.eventDate}
                                 onChange={handleInputChange}
+                                required
                             />
                         </div>
-                    </div>
 
-                    <div className="col-md-5">
-                        <div style={{ maxHeight: '300px', overflowY: 'auto', overflowX: 'hidden' }}>
+                        <div className="form-group mb-2">
+                            <label htmlFor="eventVenue">Event Venue <span className="text-danger">*</span></label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                id="eventVenue"
+                                name="eventVenue"
+                                value={eventData.eventVenue}
+                                onChange={handleInputChange}
+                                placeholder="Enter venue"
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group mb-2">
+                            <label htmlFor="mainImage" className="col-sm-3 col-form-label"><strong>Main Image</strong> <span className="text-danger">*</span></label>
+                            <div className="col-sm-9">
+                                <input
+                                    type="file"
+                                    className="form-control-file"
+                                    onChange={handleMainImageChange}
+                                    accept="image/*"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div style={{ maxHeight: '250px', overflowY: 'auto', overflowX: 'hidden' }}>
                             <table className="table">
                                 <thead>
                                     <tr>
-                                        <th>Upload Image</th>
+                                        <th>Upload Images</th>
                                         <th>Options</th>
                                     </tr>
                                 </thead>
@@ -173,6 +288,7 @@ function Eventcsr() {
                                 </tbody>
                             </table>
                         </div>
+
                         <span>
                             {imageInputCount === 0 && <p>No images added. Please add images.</p>}
                             <button type="button" onClick={addImageInput} className="btn btn-secondary mb-3">Add Image</button>
@@ -180,31 +296,6 @@ function Eventcsr() {
                     </div>
                 </div>
 
-                <div className="form-group">
-                    <label htmlFor="eventVenue">Event Venue</label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        id="eventVenue"
-                        name="eventVenue"
-                        value={eventData.eventVenue}
-                        onChange={handleInputChange}
-                        placeholder="Enter venue"
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="partner">Partner</label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        id="partner"
-                        name="partner"
-                        value={eventData.partner}
-                        onChange={handleInputChange}
-                        placeholder="Enter partner"
-                    />
-                </div>
 
                 <button type="submit" className="btn btn-primary mt-3" disabled={loading}>
                     {loading ? 'Submitting...' : 'Add Event'}

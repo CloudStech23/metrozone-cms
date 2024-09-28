@@ -38,26 +38,22 @@ const EventTable = () => {
             <Table striped bordered hover>
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Date</th>
-                        <th>Location</th>
-                        <th>Time</th>
-                        <th>Category</th>
+                        <th>Program</th>
+                        <th>Title</th>
                         <th>Partner</th>
-                        <th>Description</th>
+                        <th>Location</th>
+                        <th>Date</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {events.map((event) => (
                         <tr key={event.id}>
-                            <td>{event.eventName}</td>
-                            <td>{event.date}</td>
-                            <td>{event.location}</td>
-                            <td>{event.time}</td>
-                            <td>{event.category}</td>
+                            <td>{event.programType}</td>
+                            <td>{event.title}</td>
                             <td>{event.partner}</td>
-                            <td>{event.description}</td>
+                            <td>{event.eventVenue}</td>
+                            <td>{event.eventDate}</td>
                             <td>
                                 <Button variant="warning" onClick={() => navigate(`/update/${event.id}`)}>Update</Button>
                                 <Button variant="danger" className="ml-2 m-1" onClick={() => handleDelete(event.id)}>Delete</Button>

@@ -1,6 +1,5 @@
 // src/App.js
 import React from 'react';
-import EventForm from './components/EventForm';
 import Navbar from './components/Navbar';
 import EventTable from './components/EventTable';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
@@ -14,7 +13,6 @@ function App() {
       <Navbar />
       <Routes>
         <Route path='/' element={<EventTable />}></Route>
-        <Route path='/form' element={<EventForm />}></Route>
         <Route path='/update/:id' element={<UpdateEvent />}></Route>
         <Route path='/event' element={<Eventcsr/>}/>
         <Route path='/home' element={<HomeData />}></Route>
