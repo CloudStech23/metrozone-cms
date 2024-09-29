@@ -5,7 +5,7 @@ import { collection, addDoc } from 'firebase/firestore';
 
 function Eventcsr() {
     const [eventData, setEventData] = useState({
-        programType: 'Education',
+        programType: 'healthCare',
         title: '',
         description: '',
         eventDate: '',
@@ -78,7 +78,7 @@ function Eventcsr() {
             });
             alert('Event added successfully!');
             setEventData({
-                programType: 'Education',
+                programType: 'healthCare',
                 title: '',
                 description: '',
                 eventDate: '',
@@ -116,11 +116,11 @@ function Eventcsr() {
                                 onChange={handleInputChange}
                                 required
                             >
-                                <option value="Education">Education Development</option>
-                                <option value="skillDevelopment">Skill Development</option>
-                                <option value="ruralDevelopment">Rural Development</option>
-                                <option value="waterSanitation">Water & Sanitation</option>
-                                <option value="healthcare">Healthcare</option>
+                                <option value="healthCare">Health-Care</option>
+                                <option value="sports">Sports</option>
+                                <option value="education">Education</option>
+                                <option value="army">Army</option>
+                                 
                             </select>
                         </div>
 
