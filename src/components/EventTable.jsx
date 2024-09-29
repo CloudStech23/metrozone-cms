@@ -34,6 +34,11 @@ const EventTable = () => {
 
     return (
         <div className="container mt-4">
+            <div className="container d-flex flex-row gap-3 mb-4">
+            <button className="btn btn-success" onClick={() => navigate('/event')}>Add Event + </button>
+             {/* <button className="btn btn-primary" style={{cursor:"not-allowed",pointerEvents:"none",color:" "}} onClick={() => navigate('/header')}>Add Header Item +</button>  */}
+            </div>
+
             <h2 className="mb-4">Events Table</h2>
             <Table striped bordered hover>
                 <thead>

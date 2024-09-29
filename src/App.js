@@ -15,7 +15,7 @@ function App() {
         <Route path='/' element={<EventTable />}></Route>
         <Route path='/update/:id' element={<UpdateEvent />}></Route>
         <Route path='/event' element={<Eventcsr/>}/>
-        <Route path='/home' element={<HomeData />}></Route>
+        <Route path='/header' element={<HomeData />}></Route>
       </Routes>
     </Router>
   );

@@ -11,10 +11,13 @@ export default function Navbar() {
                 <div className="collapse navbar-collapse" id="navbarNav">
                     <ul className="navbar-nav">
                         <li className="nav-item">
-                            <Link className="nav-link active" aria-current="page" to="/event">Event-Data</Link>
+                            <Link className="nav-link active" aria-current="page" to="/">Home</Link>
                         </li>
                         <li className="nav-item">
-                            <Link className="nav-link active" aria-current="page" to="/home">Home-Data</Link>
+                            <Link className="nav-link active" aria-current="page" to="/event">Event-Data</Link>
+                        </li>
+                        <li className="nav-item" >
+                            <Link className="nav-link active" style={{cursor:"not-allowed",pointerEvents:"none",color:"gray"}}  to="/header">Home-Data</Link>
                         </li>
                     </ul>
                 </div>

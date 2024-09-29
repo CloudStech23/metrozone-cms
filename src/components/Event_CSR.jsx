@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { db, storage } from '../firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc } from 'firebase/firestore';
+import { serverTimestamp } from 'firebase/firestore';
+import Loader from './Loader';
 
 function Eventcsr() {
     const [eventData, setEventData] = useState({
-        programType: 'healthCare',
+        programType: 'Health-Care',
         title: '',
         description: '',
         eventDate: '',
@@ -75,10 +77,11 @@ function Eventcsr() {
                 ...eventData,
                 mainImage: mainImageUrl,
                 images: imageUrls,
+                createdAt: serverTimestamp(),
             });
             alert('Event added successfully!');
             setEventData({
-                programType: 'healthCare',
+                programType: 'Health-Care',
                 title: '',
                 description: '',
                 eventDate: '',
@@ -100,6 +103,12 @@ function Eventcsr() {
         }
     };
 
+    if (loading){
+        return <Loader/>
+    }
+
+     
+
     return (
         <div className="container mt-5">
             <h2>Upcoming Events</h2>
@@ -116,10 +125,10 @@ function Eventcsr() {
                                 onChange={handleInputChange}
                                 required
                             >
-                                <option value="healthCare">Health-Care</option>
-                                <option value="sports">Sports</option>
-                                <option value="education">Education</option>
-                                <option value="army">Army</option>
+                                <option value="Health-Care">Health-Care</option>
+                                <option value="Sports">Sports</option>
+                                <option value="Education">Education</option>
+                                <option value="Army">Army</option>
                                  
                             </select>
                         </div>
@@ -276,11 +285,11 @@ function Eventcsr() {
                                             <td className="col-md-6">
                                                 <div className="form-check">
                                                     <input type="checkbox" className="form-check-input" id={`highRes-${index}`} />
-                                                    <label className="form-check-label" htmlFor={`highRes-${index}`}>High Resolution</label>
+                                                    <label className="form-check-label" htmlFor={`highRes-${index}`}>is in Media ?</label>
                                                 </div>
                                                 <div className="form-check">
                                                     <input type="checkbox" className="form-check-input" id={`includeWatermark-${index}`} />
-                                                    <label className="form-check-label" htmlFor={`includeWatermark-${index}`}>Include Watermark</label>
+                                                    <label className="form-check-label" htmlFor={`includeWatermark-${index}`}>is in letter</label>
                                                 </div>
                                             </td>
                                         </tr>
@@ -298,7 +307,7 @@ function Eventcsr() {
 
 
                 <button type="submit" className="btn btn-primary mt-3" disabled={loading}>
-                    {loading ? 'Submitting...' : 'Add Event'}
+                    Add Event
                 </button>
                 {error && <p className="text-danger mt-3">{error}</p>}
             </form>
