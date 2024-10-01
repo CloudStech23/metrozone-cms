@@ -182,7 +182,7 @@ function Eventcsr() {
                         <div className="form-group mb-2">
                             <label htmlFor="beneficiary">Beneficiary <span className="text-danger">*</span></label>
                             <input
-                                type="text"
+                                type="number"
                                 className="form-control"
                                 id="beneficiary"
                                 name="beneficiary"

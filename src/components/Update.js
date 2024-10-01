@@ -20,7 +20,7 @@ const UpdateEvent = () => {
         images: [],
         mainImage: '',
     });
-    const [mainImageFile, setMainImageFile] = useState(null); // Store selected main image
+    const [mainImageFile,] = useState(null); // Store selected main image
     const [imageFiles, setImageFiles] = useState([]); // Store selected additional images
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -49,12 +49,40 @@ const UpdateEvent = () => {
     };
 
     // Handle changes to the main image
-    const handleMainImageChange = (e) => {
+    const handleMainImageChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            setMainImageFile(file);
-            const previewURL = URL.createObjectURL(file);
-            setEventData({ ...eventData, mainImage: previewURL }); // Update main image preview only
+            if (eventData.mainImage) {
+                const previousImageUrl = eventData.mainImage;
+                const urlParts = previousImageUrl.split('?')[0].split('/');
+                const path = urlParts.slice(urlParts.indexOf('o') + 1).join('/').replace(/%2F/g, '/');
+                const previousImageRef = ref(storage, path);
+                try {
+                    console.log('Deleting previous image at path:', path);
+                    await deleteObject(previousImageRef);
+                    console.log('Previous image deleted successfully.');
+                } catch (error) {
+                    console.error('Error deleting previous image:', error.message);
+                    setError('Failed to delete previous image. Please try again.');
+                    return;
+                }
+            }
+            const storageRef = ref(storage, `events/main/${file.name}`);
+            try {
+                await uploadBytes(storageRef, file);
+                const downloadURL = await getDownloadURL(storageRef);
+
+                // Update state with the new Firebase URL
+                setEventData({
+                    ...eventData,
+                    mainImage: downloadURL  // Use the Firebase URL, not the local blob URL
+                });
+
+                console.log('New main image uploaded successfully:', downloadURL);
+            } catch (error) {
+                console.error('Error uploading new main image:', error.message);
+                setError('Failed to upload new main image. Please try again.');
+            }
         }
     };
 
@@ -87,7 +115,11 @@ const UpdateEvent = () => {
     // Delete an image from Firebase Storage and remove its reference from Firestore
     const handleImageDelete = async (imageUrl) => {
         try {
-            const imageRef = ref(storage, imageUrl);
+            const urlParts = imageUrl.split('?')[0].split('/');
+            const path = urlParts.slice(urlParts.indexOf('o') + 1).join('/').replace(/%2F/g, '/');
+
+            // Delete the image from Firebase Storage
+            const imageRef = ref(storage, path);
             await deleteObject(imageRef);
 
             // Remove the image URL from the local state
@@ -106,29 +138,38 @@ const UpdateEvent = () => {
     };
 
     // Upload images to Firebase Storage
-    const uploadImage = async (file, isMainImage) => {
-        const storageRef = ref(storage, `events/${isMainImage ? 'main/' : ''}${file.name}`);
+    const uploadmainImage = async (file) => {
+        const storageRef = ref(storage, `events/main/${file.name}`);
         await uploadBytes(storageRef, file);
         return getDownloadURL(storageRef);  // Return the download URL
     };
+
+    const uploadImages = async (file) => {
+        const storageRef = ref(storage, `events/${file.name}`);
+        await uploadBytes(storageRef, file);
+        return getDownloadURL(storageRef);  // Return the download URL
+    };
+
+
+
 
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
-            let imageUrls = [];
+            let imageUrls = [...eventData.images];
 
             // Upload main image if a new one is selected
             if (mainImageFile) {
-                const mainImageUrl = await uploadImage(mainImageFile, true);
-                imageUrls.push(mainImageUrl); // Add main image to the array
+                const mainImageUrl = await uploadmainImage(mainImageFile);
+                setEventData({ ...eventData, mainImage: mainImageUrl }); // Add main image to the array
             }
 
             // Upload additional images
             for (let file of imageFiles) {
                 if (file) {
-                    const imageUrl = await uploadImage(file, false);
+                    const imageUrl = await uploadImages(file);
                     imageUrls.push(imageUrl);
                 }
             }
@@ -217,7 +258,7 @@ const UpdateEvent = () => {
                         <div className="form-group mb-2">
                             <label htmlFor="beneficiary">Beneficiary <span className="text-danger">*</span></label>
                             <input
-                                type="text"
+                                type="number"
                                 className="form-control"
                                 id="beneficiary"
                                 name="beneficiary"
@@ -287,51 +328,78 @@ const UpdateEvent = () => {
 
                         <div className="form-group mb-2">
                             <label>Main Image</label>
-                            <input
-                                type="file"
-                                className="form-control"
-                                onChange={handleMainImageChange}
-                                accept="image/*"
-                            />
-                            {eventData.mainImage && (
-                                <div className="mt-2">
-                                    <img
-                                        src={eventData.mainImage}
-                                        alt="Main Preview"
-                                        style={{ maxHeight: '150px' }}
-                                    />
-                                </div>
-                            )}
+                            <div style={{ maxHeight: '250px', overflowY: 'auto', overflowX: 'hidden', padding: '10px', border: '1px solid #ccc', borderRadius: '8px' }}>
+                                {eventData.mainImage ? (
+                                    <div className="mt-2 mb-2 p-2 border rounded bg-light">
+                                        <div className="row align-items-center">
+                                            <div className="col-md-4 text-end">
+                                                <img
+                                                    src={eventData.mainImage}
+                                                    alt="Main Preview"
+                                                    style={{ maxHeight: '100px', maxWidth: '150px', marginRight: '10px', borderRadius: '4px' }}
+                                                />
+                                            </div>
+                                            <div className="col-md-8">
+                                                <input
+                                                    type="file"
+                                                    className="form-control"
+                                                    onChange={handleMainImageChange}
+                                                    accept="image/*"
+                                                />
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mt-2 mb-2 p-2 border rounded bg-light">
+                                        <input
+                                            type="file"
+                                            className="form-control"
+                                            onChange={handleMainImageChange}
+                                            accept="image/*"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="form-group mb-2">
-                            <label>Additional Images</label>
-                            {eventData.images.map((img, index) => (
-                                <div key={index} className="mt-2">
-                                    <input
-                                        type="file"
-                                        className="form-control mb-1"
-                                        onChange={(e) => handleImageChange(e, index)}
-                                        accept="image/*"
-                                    />
-                                    {img && (
-                                        <div className="d-flex align-items-center">
-                                            <img
-                                                src={img}
-                                                alt={`Preview ${index}`}
-                                                style={{ maxHeight: '100px', marginRight: '10px' }}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="btn btn-danger"
-                                                onClick={() => handleImageDelete(img)}
-                                            >
-                                                Delete
-                                            </button>
+                            <label>Images</label>
+                            <div style={{ maxHeight: '250px', overflowY: 'auto', overflowX: 'hidden', padding: '10px', border: '1px solid #ccc', borderRadius: '8px' }}>
+                                {eventData.images.map((img, index) => (
+                                    <div key={index} className="mt-2 mb-3 p-2 border rounded bg-light">
+                                        <div className="row align-items-center">
+                                            <div className="col-md-4 text-end">
+                                                {img && (
+                                                    <div className="d-flex align-items-center">
+                                                        <img
+                                                            src={img}
+                                                            alt={`Preview ${index}`}
+                                                            style={{ maxHeight: '100px', maxWidth: '150px', marginRight: '10px', borderRadius: '4px' }}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="col-md-7">
+                                                <input
+                                                    type="file"
+                                                    className="form-control mb-1"
+                                                    onChange={(e) => handleImageChange(e, index)}
+                                                    accept="image/*"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-danger"
+                                                    onClick={() => handleImageDelete(img)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                            ))}
+                                    </div>
+                                ))}
+                            </div>
+
                             <button
                                 type="button"
                                 className="btn btn-primary mt-2"
