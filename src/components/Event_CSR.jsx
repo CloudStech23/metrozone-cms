@@ -131,10 +131,10 @@ function Eventcsr() {
                 onChange={handleInputChange}
                 required
               >
-                <option value="Health-Care">Health-Care</option>
+                <option value="Health">Health</option>
                 <option value="Sports">Sports</option>
                 <option value="Education">Education</option>
-                <option value="Army">Army</option>
+                <option value="Womens Empowerment">Womens Empowerment</option>
               </select>
             </div>
 
