@@ -60,7 +60,7 @@ const EventTable = () => {
                             <td>{event.eventVenue}</td>
                             <td>{event.eventDate}</td>
                             <td>
-                                <Button variant="warning" onClick={() => navigate(`/update/${event.id}`)}>Update</Button>
+                                <Button variant="warning" onClick={() => navigate(`/update/${event.id}`)} disabled>Update</Button>
                                 <Button variant="danger" className="ml-2 m-1" onClick={() => handleDelete(event.id)}>Delete</Button>
                             </td>
                         </tr>
