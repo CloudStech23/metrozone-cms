@@ -129,7 +129,7 @@ function Eventcsr() {
   }
 
   return (
-    <div className="container mt-5">
+    <div className="container mt-5 py-4">
       <h2>Upcoming Events</h2>
       <form onSubmit={handleSubmit} className="needs-validation">
         <div className="row">
@@ -365,7 +365,9 @@ function Eventcsr() {
                       </td>
                       <td>
                         <div>No images uploaded yet. Please add images.</div>
+                        <div className="mt-2 fw-bold text-danger">**You can upload multiple images at a time.**</div>
                       </td>
+                         
                     </tr>
                   )}
 
