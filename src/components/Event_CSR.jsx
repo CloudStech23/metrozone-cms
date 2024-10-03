@@ -13,20 +13,21 @@ function Eventcsr() {
     eventDate: "",
     eventVenue: "",
     partner: "",
-    beneficiarynum: "", // New field: beneficiary
-    beneficiarytext: "", // New field: beneficiary
-    value: "", // New field: value in numbers
-    quantity: "", // New field: quantity in numbers
-    unittype:'',
+    beneficiarynum: "",
+    beneficiarytext: "",
+    value: "",
+    quantity: "",
+    unittype: '',
     quantvaluetext: "",
     images: [],
     mainImage: "",
   });
+
   const [imageFiles, setImageFiles] = useState([]);
   const [mainImageFile, setMainImageFile] = useState(null);
-  const [imageInputCount, setImageInputCount] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [, setImageUrls] = useState([]);
 
   const handleInputChange = (event) => {
     setEventData({ ...eventData, [event.target.name]: event.target.value });
@@ -36,35 +37,40 @@ function Eventcsr() {
     setMainImageFile(event.target.files[0]);
   };
 
-  const handleImageChange = (event, index) => {
-    const files = [...imageFiles];
-    files[index] = event.target.files[0];
-    setImageFiles(files);
-  };
-
-  const addImageInput = () => {
-    setImageInputCount(imageInputCount + 1);
+  const handleImageChange = (event) => {
+    const filesArray = Array.from(event.target.files);
+    setImageFiles(filesArray);
   };
 
   const uploadImages = async () => {
-    const imageUrls = [];
+    const uploadImageUrls = [];
+
     for (let i = 0; i < imageFiles.length; i++) {
-      const file = imageFiles[i];
-      if (file) {
-        const storageRef = ref(storage, `events/${file.name}`);
-        await uploadBytes(storageRef, file);
-        const fileUrl = await getDownloadURL(storageRef);
-        imageUrls.push(fileUrl);
+      const imageFile = imageFiles[i];
+      const storageRef = ref(storage, `events/${imageFile.name}`);
+
+      try {
+        const snapshot = await uploadBytes(storageRef, imageFile);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        uploadImageUrls.push(downloadURL);
+      } catch (error) {
+        console.error('Error uploading image:', error.message);
+        setError('Error uploading images. Please try again.');
       }
     }
-    return imageUrls;
+
+    return uploadImageUrls;
   };
 
   const uploadMainImage = async () => {
     if (mainImageFile) {
       const storageRef = ref(storage, `events/main/${mainImageFile.name}`);
-      await uploadBytes(storageRef, mainImageFile);
-      return await getDownloadURL(storageRef);
+      try {
+        const snapshot = await uploadBytes(storageRef, mainImageFile);
+        return await getDownloadURL(snapshot.ref);
+      } catch (error) {
+        console.error('Error uploading main image:', error.message);
+      }
     }
     return "";
   };
@@ -73,16 +79,25 @@ function Eventcsr() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
+      // Upload main image
       const mainImageUrl = await uploadMainImage();
-      const imageUrls = await uploadImages();
+
+      // Upload additional images
+      const uploadedImageUrls = await uploadImages();
+
+      // Save event data to Firestore
       await addDoc(collection(db, "events"), {
         ...eventData,
         mainImage: mainImageUrl,
-        images: imageUrls,
+        images: uploadedImageUrls,
         createdAt: serverTimestamp(),
       });
+
       alert("Event added successfully!");
+
+      // Reset the form
       setEventData({
         programType: "Health-Care",
         title: "",
@@ -94,14 +109,14 @@ function Eventcsr() {
         beneficiarytext: "",
         value: "",
         quantity: "",
-        unittype:'',
+        unittype: '',
         quantvaluetext: "",
         images: [],
         mainImage: "",
       });
       setImageFiles([]);
       setMainImageFile(null);
-      setImageInputCount(1);
+      setImageUrls([]);
     } catch (e) {
       setError("Error adding event: " + e.message);
     } finally {
@@ -119,6 +134,7 @@ function Eventcsr() {
       <form onSubmit={handleSubmit} className="needs-validation">
         <div className="row">
           <div className="col-md-7">
+            {/* Program Type */}
             <div className="form-group mb-2">
               <label htmlFor="programType">
                 Program Type <span className="text-danger">*</span>
@@ -138,19 +154,18 @@ function Eventcsr() {
               </select>
             </div>
 
+            {/* Other form fields */}
             <div className="form-group mb-2">
               <label htmlFor="title">
                 Title <span className="text-danger">*</span>{" "}
                 <span style={{ fontSize: "0.8rem", fontWeight: "bold" }}>
                   (Max 50 characters)
                 </span>
-              </label>
-              <input
+              </label><input
                 type="text"
                 className="form-control"
                 id="title"
                 name="title"
-                maxLength="50"
                 value={eventData.title}
                 onChange={handleInputChange}
                 placeholder="Enter title"
@@ -175,22 +190,20 @@ function Eventcsr() {
               />
             </div>
 
+
             <div className="form-group mb-2">
-              <label htmlFor="description">
-                Description <span className="text-danger">*</span>
-              </label>
+              <label htmlFor="description">Description <span className="text-danger">*</span></label>
               <textarea
                 className="form-control"
                 id="description"
                 name="description"
-                rows="3"
+                rows='3'
                 value={eventData.description}
                 onChange={handleInputChange}
                 placeholder="Enter description"
                 required
-              ></textarea>
+              />
             </div>
-
             <div className="form-group mb-2">
               <label htmlFor="beneficiary">
                 Beneficiary <span className="text-danger">*</span>
@@ -233,7 +246,7 @@ function Eventcsr() {
                 required
               />
               <div className="row">
-                <dic className="col">
+                <div className="col">
                   <input
                     type="text"
                     className="form-control mt-2"
@@ -244,8 +257,8 @@ function Eventcsr() {
                     placeholder="Enter the quantity"
                     required
                   />
-                </dic>
-                <dic className="col">
+                </div>
+                <div className="col">
                   <input
                     type="text"
                     className="form-control mt-2"
@@ -256,41 +269,33 @@ function Eventcsr() {
                     placeholder="Enter the unit type"
                     required
                   />
-                </dic>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    className="form-control mt-2"
+                    id="quantvaluetext"
+                    name="quantvaluetext"
+                    value={eventData.quantvaluetext}
+                    onChange={handleInputChange}
+                    placeholder="Enter the Description"
+                    required
+                  />
+                </div>
               </div>
-
-              <input
-                type="text"
-                className="form-control mt-2"
-                id="quantvaluetext"
-                name="quantvaluetext"
-                value={eventData.quantvaluetext}
-                onChange={handleInputChange}
-                placeholder="Enter the Description"
-                required
-              />
             </div>
-
-            {/* <div className="form-group mb-2">
-                            <label htmlFor="quantity"> <span className="text-danger">*</span></label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                id="quantity"
-                                name="quantity"
-                                value={eventData.quantity}
-                                onChange={handleInputChange}
-                                placeholder="Enter quantity"
-                                required
-                            />
-                        </div> */}
           </div>
 
+
+
+
+
+
+
           <div className="col-md-5 mb-2">
+            {/* Event Date, Venue, etc. */}
             <div className="form-group mb-2">
-              <label htmlFor="eventDate">
-                Event Date <span className="text-danger">*</span>
-              </label>
+              <label htmlFor="eventDate">Event Date <span className="text-danger">*</span></label>
               <input
                 type="date"
                 className="form-control"
@@ -303,9 +308,7 @@ function Eventcsr() {
             </div>
 
             <div className="form-group mb-2">
-              <label htmlFor="eventVenue">
-                Event Venue <span className="text-danger">*</span>
-              </label>
+              <label htmlFor="eventVenue">Event Venue <span className="text-danger">*</span></label>
               <input
                 type="text"
                 className="form-control"
@@ -319,7 +322,7 @@ function Eventcsr() {
             </div>
 
             <div className="form-group mb-2">
-              <label htmlFor="mainImage" className="col-sm-3 col-form-label">
+              <label htmlFor='mainImage' className='col-sm-3 col-form-label'>
                 <strong>Main Image</strong>{" "}
                 <span className="text-danger">*</span>
               </label>
@@ -336,11 +339,10 @@ function Eventcsr() {
 
             <div
               style={{
-                maxHeight: "250px",
+                maxHeight: "350px",
                 overflowY: "auto",
                 overflowX: "hidden",
-              }}
-            >
+              }}>
               <table className="table">
                 <thead>
                   <tr>
@@ -349,17 +351,47 @@ function Eventcsr() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.from({ length: imageInputCount }).map((_, index) => (
-                    <tr key={index}>
+                  {/* if no image is uploaded yet */}
+                  {imageFiles.length === 0 && (
+                    <tr>
                       <td className="col-md-6">
                         <input
                           type="file"
                           className="form-control-file"
-                          onChange={(e) => handleImageChange(e, index)}
+                          onChange={handleImageChange}
                           accept="image/*"
+                          multiple
                         />
                       </td>
+                      <td>
+                        <div>No images uploaded yet. Please add images.</div>
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Display uploaded images */}
+                  {imageFiles.length > 0 && imageFiles.map((file, index) => (
+                    <tr key={index}>
                       <td className="col-md-6">
+                        <div className="d-flex flex-column">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index}`}
+                            width="100"
+                            height="100"
+                            style={{ objectFit: "cover" }}
+                            className="mb-2"
+                          />
+                          <input
+                            type="file"
+                            className="form-control-file"
+                            onChange={handleImageChange}
+                            accept="image/*"
+                            multiple
+                          />
+                        </div>
+                      </td>
+                      <td>
                         <div className="form-check">
                           <input
                             type="checkbox"
@@ -389,35 +421,109 @@ function Eventcsr() {
                       </td>
                     </tr>
                   ))}
+                  {/* {imageFiles.length > 0 && (
+
+                      <div className="mt-3">
+                        <input
+                          type="file"
+                          className="form-control-file"
+                          onChange={handleImageChange}
+                          accept="image/*"
+                          multiple
+                        />
+                        <h5>Selected Images:</h5>
+                        <div className="d-flex flex-wrap">
+                          {imageFiles.map((file, index) => (
+                            <tr key={index}>
+                              <td>
+                                <img
+                                  key={index}
+                                  src={URL.createObjectURL(file)}
+                                  alt={`Preview ${index}`}
+                                  width="100"
+                                  height="100"
+                                  className="me-2 mb-2"
+                                  style={{ objectFit: "cover" }}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                          <img
+                            key={index}
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index}`}
+                            width="100"
+                            height="100"
+                            className="me-2 mb-2"
+                            style={{ objectFit: "cover" }}
+                          />
+                          ))}
+                        </div>
+                      </div>
+                    )} */}
                 </tbody>
               </table>
             </div>
-
-            <span>
-              {imageInputCount === 0 && (
-                <p>No images added. Please add images.</p>
-              )}
-              <button
-                type="button"
-                onClick={addImageInput}
-                className="btn btn-secondary mb-3"
-              >
-                Add Image
-              </button>
-            </span>
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="btn btn-primary mt-3"
-          disabled={loading}
-        >
+
+
+
+
+        {/* Main Image Upload */}
+        {/* <div className="form-group mb-2">
+              <label htmlFor="mainImage">Main Image <span className="text-danger">*</span></label>
+              <input
+                type="file"
+                className="form-control-file"
+                onChange={handleMainImageChange}
+                accept="image/*"
+                required
+              />
+            </div> */}
+
+        {/* Images Upload */}
+        {/* <div className="form-group mb-2">
+              <label htmlFor="eventImages">Upload Additional Images</label>
+              <input
+                type="file"
+                className="form-control-file"
+                onChange={handleImageChange}
+                accept="image/*"
+                multiple
+              />
+              {imageFiles.length > 0 && (
+                <div className="mt-3">
+                  <h5>Selected Images:</h5>
+                  <div className="d-flex flex-wrap">
+                    {imageFiles.map((file, index) => (
+                      <img
+                        key={index}
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index}`}
+                        width="100"
+                        height="100"
+                        className="me-2 mb-2"
+                        style={{ objectFit: "cover" }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div> */}
+
+
+
+
+        <button type="submit" className="btn btn-primary mt-3" disabled={loading}>
           Add Event
         </button>
         {error && <p className="text-danger mt-3">{error}</p>}
-      </form>
-    </div>
+      </form >
+    </div >
   );
 }
 
