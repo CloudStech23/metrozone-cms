@@ -7,7 +7,7 @@ import Loader from "./Loader";
 
 function Eventcsr() {
   const [eventData, setEventData] = useState({
-    programType: "Health-Care",
+    programType: "Health",
     title: "",
     description: "",
     eventDate: "",
@@ -103,7 +103,7 @@ function Eventcsr() {
 
       // Reset the form
       setEventData({
-        programType: "Health-Care",
+        programType: "Health",
         title: "",
         description: "",
         eventDate: "",
