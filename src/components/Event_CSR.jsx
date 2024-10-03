@@ -39,7 +39,11 @@ function Eventcsr() {
 
   const handleImageChange = (event) => {
     const filesArray = Array.from(event.target.files);
-    setImageFiles(filesArray);
+    setImageFiles((prevFiles) => [...prevFiles, ...filesArray]);
+  };
+
+  const handleDeleteImage = (index) => {
+    setImageFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
   };
 
   const uploadImages = async () => {
@@ -133,7 +137,7 @@ function Eventcsr() {
       <h2>Upcoming Events</h2>
       <form onSubmit={handleSubmit} className="needs-validation">
         <div className="row">
-          <div className="col-md-7">
+          <div className="col-md-6">
             {/* Program Type */}
             <div className="form-group mb-2">
               <label htmlFor="programType">
@@ -292,7 +296,7 @@ function Eventcsr() {
 
 
 
-          <div className="col-md-5 mb-2">
+          <div className="col-md-6 mb-2">
             {/* Event Date, Venue, etc. */}
             <div className="form-group mb-2">
               <label htmlFor="eventDate">Event Date <span className="text-danger">*</span></label>
@@ -346,7 +350,7 @@ function Eventcsr() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Upload Images</th>
+                    <th>Upload Image's</th>
                     <th>Options</th>
                   </tr>
                 </thead>
@@ -372,26 +376,36 @@ function Eventcsr() {
                   {/* Display uploaded images */}
                   {imageFiles.length > 0 && imageFiles.map((file, index) => (
                     <tr key={index}>
-                      <td className="col-md-6">
-                        <div className="d-flex flex-column">
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Preview ${index}`}
-                            width="100"
-                            height="100"
-                            style={{ objectFit: "cover" }}
-                            className="mb-2"
-                          />
-                          <input
-                            type="file"
-                            className="form-control-file"
-                            onChange={handleImageChange}
-                            accept="image/*"
-                            multiple
-                          />
+                      <td className="col-md-8">
+                        <div className="row">
+                          <div className="col-md-4">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={`Preview ${index}`}
+                              width="100"
+                              height="100"
+                              style={{ objectFit: "cover" }}
+                              className="mb-2"
+                            />
+                          </div>
+                          <div className="col-md-8">
+                            <input
+                              type="file"
+                              className="form-control-file mb-2"
+                              onChange={handleImageChange}
+                              accept="image/*"
+                              multiple
+                            />
+                            <button
+                              className="btn btn-danger"
+                              onClick={() => handleDeleteImage(index)}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </td>
-                      <td>
+                      <td className="col-md-4">
                         <div className="form-check">
                           <input
                             type="checkbox"
@@ -421,101 +435,26 @@ function Eventcsr() {
                       </td>
                     </tr>
                   ))}
-                  {/* {imageFiles.length > 0 && (
-
-                      <div className="mt-3">
-                        <input
-                          type="file"
-                          className="form-control-file"
-                          onChange={handleImageChange}
-                          accept="image/*"
-                          multiple
-                        />
-                        <h5>Selected Images:</h5>
-                        <div className="d-flex flex-wrap">
-                          {imageFiles.map((file, index) => (
-                            <tr key={index}>
-                              <td>
-                                <img
-                                  key={index}
-                                  src={URL.createObjectURL(file)}
-                                  alt={`Preview ${index}`}
-                                  width="100"
-                                  height="100"
-                                  className="me-2 mb-2"
-                                  style={{ objectFit: "cover" }}
-                                />
-                              </td>
-                            </tr>
-                          ))}
-                          <img
-                            key={index}
-                            src={URL.createObjectURL(file)}
-                            alt={`Preview ${index}`}
-                            width="100"
-                            height="100"
-                            className="me-2 mb-2"
-                            style={{ objectFit: "cover" }}
-                          />
-                          ))}
-                        </div>
-                      </div>
-                    )} */}
                 </tbody>
               </table>
             </div>
+            {
+              imageFiles.length > 0 && (
+                <div className="form-group mt-3">
+                  <label htmlFor="addMoreImages">Add More Images</label>
+                  {" "}
+                  <input
+                    type="file"
+                    className="form-control-file"
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    multiple
+                  />
+                </div>
+              )
+            }
           </div>
         </div>
-
-
-
-
-
-        {/* Main Image Upload */}
-        {/* <div className="form-group mb-2">
-              <label htmlFor="mainImage">Main Image <span className="text-danger">*</span></label>
-              <input
-                type="file"
-                className="form-control-file"
-                onChange={handleMainImageChange}
-                accept="image/*"
-                required
-              />
-            </div> */}
-
-        {/* Images Upload */}
-        {/* <div className="form-group mb-2">
-              <label htmlFor="eventImages">Upload Additional Images</label>
-              <input
-                type="file"
-                className="form-control-file"
-                onChange={handleImageChange}
-                accept="image/*"
-                multiple
-              />
-              {imageFiles.length > 0 && (
-                <div className="mt-3">
-                  <h5>Selected Images:</h5>
-                  <div className="d-flex flex-wrap">
-                    {imageFiles.map((file, index) => (
-                      <img
-                        key={index}
-                        src={URL.createObjectURL(file)}
-                        alt={`Preview ${index}`}
-                        width="100"
-                        height="100"
-                        className="me-2 mb-2"
-                        style={{ objectFit: "cover" }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-          </div> */}
-
-
 
 
         <button type="submit" className="btn btn-primary mt-3" disabled={loading}>
