@@ -1,10 +1,10 @@
 // src/components/EventTable.js
 import React, { useState, useEffect } from 'react';
-import { db } from '../firebaseConfig'; // Adjust the import path as needed
-import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { db, storage } from '../firebaseConfig'; // Adjust the import path as needed
+import { collection, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
 import { Button, Table } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-
+import { deleteObject, ref } from 'firebase/storage';
 
 
 const EventTable = () => {
@@ -21,10 +21,33 @@ const EventTable = () => {
     // Delete event
     const handleDelete = async (id) => {
         try {
-            await deleteDoc(doc(db, 'events', id));
-            fetchEvents(); // Refresh the table
-        } catch (e) {
-            console.error('Error deleting document: ', e);
+            const eventDocRef = doc(db, 'events', id);
+            const eventDoc = await getDoc(eventDocRef);
+
+            if (eventDoc.exists()) {
+                const eventData = eventDoc.data();
+                const mainimageurl = eventData.mainImage;
+                const imagesurl = eventData.images || [];
+
+                const deleteImagePromises = imagesurl.map((url) => {
+                    const imageRef = ref(storage, url);
+                    return deleteObject(imageRef);
+                });
+
+                if (mainimageurl) {
+                    const mainImageRef = ref(storage, mainimageurl);
+                    deleteObject(mainImageRef);
+                }
+                await Promise.all(deleteImagePromises);
+
+                await deleteDoc(eventDocRef);
+                fetchEvents();
+            }
+            else {
+                console.log("Document does not exist");
+            }
+        } catch (error) {
+            console.log('Error deleting document: ', error);
         }
     };
 
@@ -35,8 +58,8 @@ const EventTable = () => {
     return (
         <div className="container mt-4">
             <div className="container d-flex flex-row gap-3 mb-4">
-            <button className="btn btn-success" onClick={() => navigate('/event')}>Add Event + </button>
-             {/* <button className="btn btn-primary" style={{cursor:"not-allowed",pointerEvents:"none",color:" "}} onClick={() => navigate('/header')}>Add Header Item +</button>  */}
+                <button className="btn btn-success" onClick={() => navigate('/event')}>Add Event + </button>
+                {/* <button className="btn btn-primary" style={{cursor:"not-allowed",pointerEvents:"none",color:" "}} onClick={() => navigate('/header')}>Add Header Item +</button>  */}
             </div>
 
             <h2 className="mb-4">Events Table</h2>
@@ -60,7 +83,7 @@ const EventTable = () => {
                             <td>{event.eventVenue}</td>
                             <td>{event.eventDate}</td>
                             <td>
-                                <Button variant="warning" onClick={() => navigate(`/update/${event.id}`)} disabled  >Update</Button>
+                                <Button variant="warning" onClick={() => navigate(`/update/${event.id}`)}>Update</Button>
                                 <Button variant="danger" className="ml-2 m-1" onClick={() => handleDelete(event.id)}>Delete</Button>
                             </td>
                         </tr>

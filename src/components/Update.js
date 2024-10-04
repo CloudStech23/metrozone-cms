@@ -1,4 +1,4 @@
-import React, { useState, useEffect,useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { db, storage } from "../firebaseConfig"; // Adjust the import path as needed
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import {
@@ -28,13 +28,11 @@ const UpdateEvent = () => {
     images: [],
     mainImage: "",
   });
-  const [mainImageFile] = useState(null); // Store selected main image
-  const [imageFiles, setImageFiles] = useState([]); // Store selected additional images
+  const [mainImageFile, setMainImageFile] = useState(null); // Store selected main image
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [imageInputCount, setImageInputCount] = useState(1); // Controls number of image inputs
-  const scrollRef = useRef(null); // Step 1: Define the scrollRef
 
+  // Fetch event data on component mount
   useEffect(() => {
     const fetchEvent = async () => {
       const docRef = doc(db, "events", id);
@@ -43,6 +41,7 @@ const UpdateEvent = () => {
       if (docSnap.exists()) {
         const eventData = docSnap.data();
         setEventData(eventData);
+        setMainImageFile(eventData.mainImage);
       } else {
         console.error("No such document!");
       }
@@ -57,117 +56,110 @@ const UpdateEvent = () => {
     setEventData({ ...eventData, [name]: value });
   };
 
-  // Handle changes to the main image
-  const handleMainImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (eventData.mainImage) {
-        const previousImageUrl = eventData.mainImage;
-        const urlParts = previousImageUrl.split("?")[0].split("/");
-        const path = urlParts
-          .slice(urlParts.indexOf("o") + 1)
-          .join("/")
-          .replace(/%2F/g, "/");
-        const previousImageRef = ref(storage, path);
-        try {
-          console.log("Deleting previous image at path:", path);
-          await deleteObject(previousImageRef);
-          console.log("Previous image deleted successfully.");
-        } catch (error) {
-          console.error("Error deleting previous image:", error.message);
-          setError("Failed to delete previous image. Please try again.");
-          return;
-        }
-      }
-      const storageRef = ref(storage, `events/main/${file.name}`);
-      try {
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
-
-        // Update state with the new Firebase URL
-        setEventData({
-          ...eventData,
-          mainImage: downloadURL, // Use the Firebase URL, not the local blob URL
-        });
-
-        console.log("New main image uploaded successfully:", downloadURL);
-      } catch (error) {
-        console.error("Error uploading new main image:", error.message);
-        setError("Failed to upload new main image. Please try again.");
-      }
-    }
-  };
-
-  // Handle changes for additional images
-  const handleImageChange = (e, index) => {
-    const file = e.target.files[0];
-    if (file) {
-      let newImageFiles = [...imageFiles];
-      newImageFiles[index] = file;
-      setImageFiles(newImageFiles);
-
-      // Generate preview URL for the selected image
-      const previewURL = URL.createObjectURL(file);
-      let newImages = [...eventData.images];
-      newImages[index] = previewURL;
-      setEventData({ ...eventData, images: newImages });
-    }
-  };
-
-  // Add a new image input field
-  const addImageInput = () => {
-    setEventData({
-      ...eventData,
-      images: [...eventData.images, null], // Add a new empty image placeholder
-    });
-    setImageFiles([...imageFiles, null]); // Ensure imageFiles has a placeholder for the new input
-    setImageInputCount(imageInputCount + 1);
-
-    // Scroll to the bottom after adding a new image input
-    setTimeout(() => {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }, 100); // Small delay to ensure the DOM updates before scrolling
-  };
-
-  // Delete an image from Firebase Storage and remove its reference from Firestore
-  const handleImageDelete = async (imageUrl) => {
+  // Delete an image from storage and Firestore
+  const deleteImage = async (imageUrl) => {
     try {
-      const urlParts = imageUrl.split("?")[0].split("/");
-      const path = urlParts
-        .slice(urlParts.indexOf("o") + 1)
-        .join("/")
-        .replace(/%2F/g, "/");
+      // Extract the storage path from the full URL
+      const decodedUrl = decodeURIComponent(imageUrl);
+      const pathStartIndex = decodedUrl.indexOf("/o/") + 3; // Start after '/o/'
+      const pathEndIndex = decodedUrl.indexOf("?alt=");
+      const objectPath = decodedUrl.substring(pathStartIndex, pathEndIndex);
 
-      // Delete the image from Firebase Storage
-      const imageRef = ref(storage, path);
+      // Reference to the object in Firebase storage
+      const imageRef = ref(storage, objectPath);
+
+      // Delete the file
       await deleteObject(imageRef);
+      console.log("File deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting image:", error);
+    }
+  };
 
-      // Remove the image URL from the local state
-      const updatedImages = eventData.images.filter((img) => img !== imageUrl);
+  // Handle changes to the main image
+  const handleMainImageChange = async (e, id) => {
+    try {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const filename = file.name;
+      const mainImageRef = ref(storage, `events/main/${filename}`);
+      // console.log("Uploading main image:", filename);
+
+      if (mainImageFile) {
+        // console.log("Deleting previous main image:", mainImageFile);
+        await deleteImage(mainImageFile);
+      }
+
+      const snapshot = await uploadBytes(mainImageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      setMainImageFile(downloadURL); // Update local state
+
+      const eventRef = doc(db, "events", id);
+      // console.log("Updating Firestore document:", id);
+
+      await updateDoc(eventRef, { mainImage: downloadURL }); // Update Firestore
+    } catch (error) {
+      console.error("Error handling main image:", error);
+      // setError("Failed to upload new main image. Please try again.");
+    }
+  };
+
+  // Handle adding new images
+  const handleImageChange = async (e) => {
+    try {
+      const files = e.target.files;
+      const newImageFiles = [];
+
+      for (const file of files) {
+        const fileName = file.name;
+        const imageRef = ref(storage, `events/${fileName}`);
+
+        const snapshot = await uploadBytes(imageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        newImageFiles.push(downloadURL);
+      }
+
+      const updatedImages = [...eventData.images, ...newImageFiles];
       setEventData({ ...eventData, images: updatedImages });
 
-      // Update Firestore with the new images array
-      const docRef = doc(db, "events", id);
-      await updateDoc(docRef, { images: updatedImages });
-
-      alert("Image deleted successfully!");
+      // Update the Firestore document
+      const eventRef = doc(db, "events", id);  // Get reference to the Firestore document
+      await updateDoc(eventRef, { images: updatedImages });  // Update the document with new images
     } catch (error) {
-      console.error("Error deleting image: ", error);
-      setError("Error deleting the image. Please try again.");
+      console.error("Error handling image upload:", error);
+      // setError("Failed to upload new image. Please try again.");
     }
   };
 
-  // Upload images to Firebase Storage
-  const uploadmainImage = async (file) => {
-    const storageRef = ref(storage, `events/main/${file.name}`);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef); // Return the download URL
-  };
+  // Handle deleting an additional image
+  const handleImageDelete = async (imageUrl, index) => {
+    try {
+      // Extract the path from the image URL to delete it from Firebase Storage
+      const decodedUrl = decodeURIComponent(imageUrl);
+      const pathStartIndex = decodedUrl.indexOf("/o/") + 3; // Extract the object path from the URL
+      const pathEndIndex = decodedUrl.indexOf("?alt=");
+      const objectPath = decodedUrl.substring(pathStartIndex, pathEndIndex);
 
-  const uploadImages = async (file) => {
-    const storageRef = ref(storage, `events/${file.name}`);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef); // Return the download URL
+      // Create a reference to the file in Firebase Storage and delete it
+      const imageRef = ref(storage, objectPath);
+      await deleteObject(imageRef);  // Delete the file from Firebase Storage
+
+      // Remove the image from the state
+      const updatedImages = eventData.images.filter((_, i) => i !== index);
+      setEventData({ ...eventData, images: updatedImages });
+
+      // Update the Firestore document to remove the image URL
+      const eventRef = doc(db, "events", id);
+      await updateDoc(eventRef, { images: updatedImages });
+
+      alert("Image deleted successfully");
+    } catch (error) {
+      console.error("Error deleting image: ", error);
+      // setError("Failed to delete image. Please try again.");
+    }
   };
 
   // Handle form submission
@@ -175,25 +167,10 @@ const UpdateEvent = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      let imageUrls = [...eventData.images];
-
-      // Upload main image if a new one is selected
-      if (mainImageFile) {
-        const mainImageUrl = await uploadmainImage(mainImageFile);
-        setEventData({ ...eventData, mainImage: mainImageUrl }); // Add main image to the array
-      }
-
-      // Upload additional images
-      for (let file of imageFiles) {
-        if (file) {
-          const imageUrl = await uploadImages(file);
-          imageUrls.push(imageUrl);
-        }
-      }
 
       // Update the Firestore document
-      const docRef = doc(db, "events", id);
-      await updateDoc(docRef, { ...eventData, images: imageUrls });
+      const eventRef = doc(db, "events", id);
+      await updateDoc(eventRef, { ...eventData });
 
       alert("Event updated successfully!");
       navigate("/"); // Redirect to the main page or event list
@@ -304,8 +281,7 @@ const UpdateEvent = () => {
                 required
               />
             </div>
-
-           <div className="form-group mb-2">
+            <div className="form-group mb-2">
               <label htmlFor="value">
                 Contribution of value and quantity{" "}
                 <span className="text-danger">*</span>
@@ -361,6 +337,7 @@ const UpdateEvent = () => {
             </div>
           </div>
 
+          {/* col-2 for images */}
           <div className="col-md-5">
             <div className="form-group mb-2">
               <label htmlFor="eventDate">
@@ -394,7 +371,9 @@ const UpdateEvent = () => {
             </div>
 
             <div className="form-group mb-2">
-              <label>Main Image</label>
+              <label htmlFor="mainImage">
+                Main Image <span className="text-danger">*</span>
+              </label>
               <div
                 style={{
                   maxHeight: "250px",
@@ -405,12 +384,12 @@ const UpdateEvent = () => {
                   borderRadius: "8px",
                 }}
               >
-                {eventData.mainImage ? (
+                {mainImageFile ? (
                   <div className="mt-2 mb-2 p-2 border rounded bg-light">
                     <div className="row align-items-center">
                       <div className="col-md-4 text-end">
                         <img
-                          src={eventData.mainImage}
+                          src={mainImageFile}
                           alt="Main Preview"
                           style={{
                             maxHeight: "100px",
@@ -424,7 +403,7 @@ const UpdateEvent = () => {
                         <input
                           type="file"
                           className="form-control"
-                          onChange={handleMainImageChange}
+                          onChange={(e) => handleMainImageChange(e, id)}
                           accept="image/*"
                         />
                       </div>
@@ -441,12 +420,27 @@ const UpdateEvent = () => {
                   </div>
                 )}
               </div>
+              {/* <input
+                type="file"
+                className="form-control"
+                id="mainImage"
+                onChange={(e) => handleMainImageChange(e, id)}
+              />
+              {mainImageFile && (
+                <img
+                  src={mainImageFile}
+                  alt="Main event"
+                  className="img-thumbnail mt-2"
+                  width="100"
+                />
+              )} */}
             </div>
 
             <div className="form-group mb-2">
-              <label>Images</label>
+              <label>
+                Images <span className="text-danger">*</span>
+              </label>
               <div
-                ref={scrollRef} // Step 2: Attach scrollRef here
                 style={{
                   maxHeight: "250px",
                   overflowY: "auto",
@@ -482,13 +476,13 @@ const UpdateEvent = () => {
                         <input
                           type="file"
                           className="form-control mb-1"
-                          onChange={(e) => handleImageChange(e, index)}
+                          onChange={handleImageChange}
                           accept="image/*"
                         />
                         <button
                           type="button"
                           className="btn btn-danger"
-                          onClick={() => handleImageDelete(img)}
+                          onClick={() => handleImageDelete(img, index)}
                         >
                           Delete
                         </button>
@@ -497,24 +491,56 @@ const UpdateEvent = () => {
                   </div>
                 ))}
               </div>
-
-              <button
-                type="button"
-                className="btn btn-primary mt-2"
-                onClick={addImageInput}
-              >
-                Add More Images
-              </button>
+              <span className="row mt-2">
+                <div className="col-md-4">
+                  <label>
+                    Add Images
+                  </label>
+                </div>
+                <div className="col-md-7">
+                  <input
+                    type="file"
+                    className="form-control mb-1"
+                    onChange={handleImageChange}
+                    accept="image/*"
+                  />
+                </div>
+              </span>
+              {/* <input
+                type="file"
+                className="form-control"
+                id="images"
+                multiple
+                onChange={handleImageChange}
+              />
+              {
+                eventData.images.map((imageUrl, index) => (
+                  <div key={index} className="mt-2">
+                    <img
+                      src={imageUrl}
+                      alt={`Event ${index}`}
+                      className="img-thumbnail"
+                      width="100"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm ml-2"
+                      onClick={() => handleImageDelete(imageUrl, index)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))} */}
             </div>
           </div>
         </div>
 
-        <button type="submit" className="btn btn-success" disabled={loading}>
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? "Updating..." : "Update Event"}
         </button>
-        {error && <p className="text-danger mt-2">{error}</p>}
-      </form>
-    </div>
+      </form >
+      {error && <p className="text-danger mt-3">{error}</p>}
+    </div >
   );
 };
 
