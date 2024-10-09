@@ -8,6 +8,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { useParams, useNavigate } from "react-router-dom";
+import Loader from "./Loader";
 
 const UpdateEvent = () => {
   const { id } = useParams(); // Get the event ID from the URL
@@ -59,16 +60,11 @@ const UpdateEvent = () => {
   // Delete an image from storage and Firestore
   const deleteImage = async (imageUrl) => {
     try {
-      // Extract the storage path from the full URL
       const decodedUrl = decodeURIComponent(imageUrl);
       const pathStartIndex = decodedUrl.indexOf("/o/") + 3; // Start after '/o/'
       const pathEndIndex = decodedUrl.indexOf("?alt=");
       const objectPath = decodedUrl.substring(pathStartIndex, pathEndIndex);
-
-      // Reference to the object in Firebase storage
       const imageRef = ref(storage, objectPath);
-
-      // Delete the file
       await deleteObject(imageRef);
       console.log("File deleted successfully.");
     } catch (error) {
@@ -77,17 +73,16 @@ const UpdateEvent = () => {
   };
 
   // Handle changes to the main image
-  const handleMainImageChange = async (e, id) => {
+  const handleMainImageChange = async (e) => {
     try {
       const file = e.target.files[0];
       if (!file) return;
 
       const filename = file.name;
       const mainImageRef = ref(storage, `events/main/${filename}`);
-      // console.log("Uploading main image:", filename);
 
+      // Delete the previous main image if it exists
       if (mainImageFile) {
-        // console.log("Deleting previous main image:", mainImageFile);
         await deleteImage(mainImageFile);
       }
 
@@ -97,12 +92,13 @@ const UpdateEvent = () => {
       setMainImageFile(downloadURL); // Update local state
 
       const eventRef = doc(db, "events", id);
-      // console.log("Updating Firestore document:", id);
-
       await updateDoc(eventRef, { mainImage: downloadURL }); // Update Firestore
     } catch (error) {
       console.error("Error handling main image:", error);
-      // setError("Failed to upload new main image. Please try again.");
+      setError("Failed to upload new main image. Please try again.");
+    }
+    if (loading) {
+      return <Loader />;
     }
   };
 
@@ -126,39 +122,35 @@ const UpdateEvent = () => {
       setEventData({ ...eventData, images: updatedImages });
 
       // Update the Firestore document
-      const eventRef = doc(db, "events", id);  // Get reference to the Firestore document
-      await updateDoc(eventRef, { images: updatedImages });  // Update the document with new images
+      const eventRef = doc(db, "events", id);
+      await updateDoc(eventRef, { images: updatedImages });
     } catch (error) {
       console.error("Error handling image upload:", error);
-      // setError("Failed to upload new image. Please try again.");
+      setError("Failed to upload new image. Please try again.");
     }
   };
+
 
   // Handle deleting an additional image
   const handleImageDelete = async (imageUrl, index) => {
     try {
-      // Extract the path from the image URL to delete it from Firebase Storage
       const decodedUrl = decodeURIComponent(imageUrl);
-      const pathStartIndex = decodedUrl.indexOf("/o/") + 3; // Extract the object path from the URL
+      const pathStartIndex = decodedUrl.indexOf("/o/") + 3;
       const pathEndIndex = decodedUrl.indexOf("?alt=");
       const objectPath = decodedUrl.substring(pathStartIndex, pathEndIndex);
-
-      // Create a reference to the file in Firebase Storage and delete it
       const imageRef = ref(storage, objectPath);
-      await deleteObject(imageRef);  // Delete the file from Firebase Storage
+      await deleteObject(imageRef);
 
-      // Remove the image from the state
       const updatedImages = eventData.images.filter((_, i) => i !== index);
       setEventData({ ...eventData, images: updatedImages });
 
-      // Update the Firestore document to remove the image URL
       const eventRef = doc(db, "events", id);
       await updateDoc(eventRef, { images: updatedImages });
 
       alert("Image deleted successfully");
     } catch (error) {
-      console.error("Error deleting image: ", error);
-      // setError("Failed to delete image. Please try again.");
+      console.error("Error deleting image:", error);
+      setError("Failed to delete image. Please try again.");
     }
   };
 
@@ -167,15 +159,13 @@ const UpdateEvent = () => {
     e.preventDefault();
     setLoading(true);
     try {
-
-      // Update the Firestore document
       const eventRef = doc(db, "events", id);
-      await updateDoc(eventRef, { ...eventData });
+      await updateDoc(eventRef, { ...eventData, mainImage: mainImageFile }); // Ensure main image is included in the update
 
       alert("Event updated successfully!");
       navigate("/"); // Redirect to the main page or event list
     } catch (error) {
-      console.error("Error updating document: ", error);
+      console.error("Error updating document:", error);
       setError("Error updating the event. Please try again.");
     } finally {
       setLoading(false);
@@ -277,8 +267,8 @@ const UpdateEvent = () => {
                 name="beneficiarytext"
                 value={eventData.beneficiarytext}
                 onChange={handleInputChange}
-                placeholder="Enter the description of beneficiary"
-                required
+                placeholder="Enter the description of beneficiary (This field is not mandatory)"
+                
               />
             </div>
             <div className="form-group mb-2">
@@ -297,7 +287,7 @@ const UpdateEvent = () => {
                 required
               />
               <div className="row">
-                <div className="col">
+                {/* <div className="col">
                   <input
                     type="text"
                     className="form-control mt-2"
@@ -308,8 +298,8 @@ const UpdateEvent = () => {
                     placeholder="Enter the quantity"
                     required
                   />
-                </div>
-                <div className="col">
+                </div> */}
+                {/* <div className="col">
                   <input
                     type="text"
                     className="form-control mt-2"
@@ -320,7 +310,7 @@ const UpdateEvent = () => {
                     placeholder="Enter the unit type"
                     required
                   />
-                </div>
+                </div> */}
                 <div>
                   <input
                     type="text"
@@ -329,8 +319,8 @@ const UpdateEvent = () => {
                     name="quantvaluetext"
                     value={eventData.quantvaluetext}
                     onChange={handleInputChange}
-                    placeholder="Enter the Description"
-                    required
+                    placeholder="Enter the Description (This field is not mandatory)"
+                    
                   />
                 </div>
               </div>
@@ -406,6 +396,7 @@ const UpdateEvent = () => {
                           onChange={(e) => handleMainImageChange(e, id)}
                           accept="image/*"
                         />
+                       
                       </div>
                     </div>
                   </div>

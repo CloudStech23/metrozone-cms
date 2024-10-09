@@ -192,6 +192,7 @@ function Eventcsr() {
                 placeholder="Enter partner"
                 required
               />
+              
             </div>
 
 
@@ -229,7 +230,7 @@ function Eventcsr() {
                 name="beneficiarytext"
                 value={eventData.beneficiarytext}
                 onChange={handleInputChange}
-                placeholder="Enter the description of beneficiary"
+                placeholder="Enter the description of beneficiary (This is optional)"
                 required
               />
             </div>
@@ -241,7 +242,7 @@ function Eventcsr() {
               </label>
               <input
                 type="text"
-                className="form-control"
+                className="form-control" 
                 id="value"
                 name="value"
                 value={eventData.value}
@@ -250,7 +251,7 @@ function Eventcsr() {
                 required
               />
               <div className="row">
-                <div className="col">
+                {/* <div className="col">
                   <input
                     type="text"
                     className="form-control mt-2"
@@ -261,8 +262,8 @@ function Eventcsr() {
                     placeholder="Enter the quantity"
                     required
                   />
-                </div>
-                <div className="col">
+                </div> */}
+                {/* <div className="col">
                   <input
                     type="text"
                     className="form-control mt-2"
@@ -273,7 +274,7 @@ function Eventcsr() {
                     placeholder="Enter the unit type"
                     required
                   />
-                </div>
+                </div> */}
                 <div>
                   <input
                     type="text"
@@ -282,8 +283,9 @@ function Eventcsr() {
                     name="quantvaluetext"
                     value={eventData.quantvaluetext}
                     onChange={handleInputChange}
-                    placeholder="Enter the Description"
+                    placeholder="Enter the Description (This is optional)"
                     required
+                     
                   />
                 </div>
               </div>
