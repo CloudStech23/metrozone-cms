@@ -8,6 +8,7 @@ import Loader from "./Loader";
 function Eventcsr() {
   const [eventData, setEventData] = useState({
     programType: "Health",
+    customProgramType: "",
     title: "",
     description: "",
     eventDate: "",
@@ -91,9 +92,14 @@ function Eventcsr() {
       // Upload additional images
       const uploadedImageUrls = await uploadImages();
 
+
+      // Final Program Type
+      const finalProgramType = eventData.programType === 'Other' ? eventData.customProgramType : eventData.programType
+
       // Save event data to Firestore
       await addDoc(collection(db, "events"), {
         ...eventData,
+        programType: finalProgramType,
         mainImage: mainImageUrl,
         images: uploadedImageUrls,
         createdAt: serverTimestamp(),
@@ -104,6 +110,7 @@ function Eventcsr() {
       // Reset the form
       setEventData({
         programType: "Health",
+        customProgramType: "",
         title: "",
         description: "",
         eventDate: "",
@@ -155,8 +162,27 @@ function Eventcsr() {
                 <option value="Sports">Sports</option>
                 <option value="Education">Education</option>
                 <option value="Womens Empowerment">Womens Empowerment</option>
+                <option value="Other">Other</option>
               </select>
             </div>
+
+            {eventData.programType === "Other" && (
+              <div className="form-group mb-2">
+                <label htmlFor="customProgramType">
+                  Enter Program Type <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  id="customProgramType"
+                  name="customProgramType"
+                  value={eventData.customProgramType}
+                  onChange={handleInputChange}
+                  placeholder="Enter program type"
+                  required
+                />
+              </div>
+            )}
 
             {/* Other form fields */}
             <div className="form-group mb-2">
@@ -192,7 +218,7 @@ function Eventcsr() {
                 placeholder="Enter partner"
                 required
               />
-              
+
             </div>
 
 
@@ -242,7 +268,7 @@ function Eventcsr() {
               </label>
               <input
                 type="text"
-                className="form-control" 
+                className="form-control"
                 id="value"
                 name="value"
                 value={eventData.value}
@@ -285,7 +311,7 @@ function Eventcsr() {
                     onChange={handleInputChange}
                     placeholder="Enter the Description (This is optional)"
                     required
-                     
+
                   />
                 </div>
               </div>
@@ -373,7 +399,7 @@ function Eventcsr() {
                         <div>No images uploaded yet. Please add images.</div>
                         <div className="mt-2 fw-bold text-danger">**You can upload multiple images at a time.**</div>
                       </td>
-                         
+
                     </tr>
                   )}
 

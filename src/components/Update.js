@@ -14,7 +14,8 @@ const UpdateEvent = () => {
   const { id } = useParams(); // Get the event ID from the URL
   const navigate = useNavigate();
   const [eventData, setEventData] = useState({
-    programType: "Health",
+    programType: "",
+    customProgramType: "",
     title: "",
     description: "",
     eventDate: "",
@@ -41,7 +42,15 @@ const UpdateEvent = () => {
 
       if (docSnap.exists()) {
         const eventData = docSnap.data();
-        setEventData(eventData);
+        setEventData({
+          ...eventData,
+          programType: eventData.programType === "Health" || eventData.programType === "Sports" || eventData.programType === "Education" || eventData.programType === "Womens Empowerment"
+            ? eventData.programType
+            : "Other", // Check if the programType is not one of the predefined options
+          customProgramType: eventData.programType !== "Health" && eventData.programType !== "Sports" && eventData.programType !== "Education" && eventData.programType !== "Womens Empowerment"
+            ? eventData.programType
+            : "",
+        });
         setMainImageFile(eventData.mainImage);
       } else {
         console.error("No such document!");
@@ -160,13 +169,15 @@ const UpdateEvent = () => {
     setLoading(true);
     try {
       const eventRef = doc(db, "events", id);
-      await updateDoc(eventRef, { ...eventData, mainImage: mainImageFile }); // Ensure main image is included in the update
+      const finalProgramType = eventData.programType === "Other" ? eventData.customProgramType : eventData.programType;
+
+      await updateDoc(eventRef, { ...eventData, programType: finalProgramType, mainImage: mainImageFile }); // Ensure main image is included in the update
 
       alert("Event updated successfully!");
       navigate("/"); // Redirect to the main page or event list
     } catch (error) {
       console.error("Error updating document:", error);
-      setError("Error updating the event. Please try again.");
+      setError("Error updating the eventData. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -194,8 +205,28 @@ const UpdateEvent = () => {
                 <option value="Sports">Sports</option>
                 <option value="Education">Education</option>
                 <option value="Womens Empowerment">Womens Empowerment</option>
+                <option value="Other">Other</option>
               </select>
             </div>
+
+            {/* Custom Program Type (when 'Other' is selected or was previously set) */}
+            {eventData.programType === "Other" && (
+              <div className="form-group mb-2">
+                <label htmlFor="customProgramType">
+                  Enter Program Type <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  id="customProgramType"
+                  name="customProgramType"
+                  value={eventData.customProgramType}
+                  onChange={handleInputChange}
+                  placeholder="Enter program type"
+                  required
+                />
+              </div>
+            )}
 
             <div className="form-group mb-2">
               <label htmlFor="title">
@@ -268,7 +299,7 @@ const UpdateEvent = () => {
                 value={eventData.beneficiarytext}
                 onChange={handleInputChange}
                 placeholder="Enter the description of beneficiary (This field is not mandatory)"
-                
+
               />
             </div>
             <div className="form-group mb-2">
@@ -320,7 +351,7 @@ const UpdateEvent = () => {
                     value={eventData.quantvaluetext}
                     onChange={handleInputChange}
                     placeholder="Enter the Description (This field is not mandatory)"
-                    
+
                   />
                 </div>
               </div>
@@ -396,7 +427,7 @@ const UpdateEvent = () => {
                           onChange={(e) => handleMainImageChange(e, id)}
                           accept="image/*"
                         />
-                       
+
                       </div>
                     </div>
                   </div>
