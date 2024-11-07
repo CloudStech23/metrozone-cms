@@ -1,7 +1,7 @@
 // src/components/EventTable.js
 import React, { useState, useEffect } from 'react';
 import { db, storage } from '../firebaseConfig'; // Adjust the import path as needed
-import { collection, getDocs, getDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, deleteDoc,orderBy,query } from 'firebase/firestore';
 import { Button, Table } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { deleteObject, ref } from 'firebase/storage';
@@ -13,8 +13,13 @@ const EventTable = () => {
 
     // Fetch events from Firestore
     const fetchEvents = async () => {
-        const querySnapshot = await getDocs(collection(db, 'events'));
+        const eventsRef = collection(db, 'events');
+        // Query the collection, ordering by 'createdAt' in descending order
+        const q = query(eventsRef, orderBy('createdAt', 'desc'));
+    
+        const querySnapshot = await getDocs(q);
         const eventsList = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        
         setEvents(eventsList);
     };
 
@@ -79,9 +84,9 @@ const EventTable = () => {
                         <tr key={event.id}>
                             <td>{event.programType}</td>
                             <td>{event.title}</td>
-                            <td>{event.partner}</td>
-                            <td>{event.eventVenue}</td>
-                            <td>{event.eventDate}</td>
+                            <td className='col-2'>{event.partner}</td>
+                            <td className='col-3'>{event.eventVenue}</td>
+                            <td className='col-1'>{event.eventDate}</td>
                             <td>
                                 <Button variant="warning" onClick={() => navigate(`/update/${event.id}`)}>Update</Button>
                                 <Button variant="danger" className="ml-2 m-1" onClick={() => handleDelete(event.id)}>Delete</Button>
