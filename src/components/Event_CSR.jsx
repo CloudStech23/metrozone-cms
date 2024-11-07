@@ -84,29 +84,28 @@ function Eventcsr() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+  
     try {
       // Upload main image
       const mainImageUrl = await uploadMainImage();
-
+  
       // Upload additional images
       const uploadedImageUrls = await uploadImages();
-
-
+  
       // Final Program Type
-      const finalProgramType = eventData.programType === 'Other' ? eventData.customProgramType : eventData.programType
-
-      // Save event data to Firestore
+      const finalProgramType = eventData.programType === 'Other' ? eventData.customProgramType : eventData.programType;
+  
+      // Save event data to Firestore with the creation timestamp
       await addDoc(collection(db, "events"), {
         ...eventData,
         programType: finalProgramType,
         mainImage: mainImageUrl,
         images: uploadedImageUrls,
-        createdAt: serverTimestamp(),
+        createdAt: serverTimestamp(),  // <--- Setting the creation timestamp here
       });
-
+  
       alert("Event added successfully!");
-
+  
       // Reset the form
       setEventData({
         programType: "Health",
@@ -134,6 +133,7 @@ function Eventcsr() {
       setLoading(false);
     }
   };
+  
 
   if (loading) {
     return <Loader />;
@@ -214,7 +214,7 @@ function Eventcsr() {
                 id="partner"
                 name="partner"
                 value={eventData.partner}
-                onChange={handleInputChange}
+                onChange={handleInputChange} 
                 placeholder="Enter partner"
                 required
               />
@@ -257,7 +257,7 @@ function Eventcsr() {
                 value={eventData.beneficiarytext}
                 onChange={handleInputChange}
                 placeholder="Enter the description of beneficiary (This is optional)"
-                required
+                 
               />
             </div>
 
@@ -310,7 +310,7 @@ function Eventcsr() {
                     value={eventData.quantvaluetext}
                     onChange={handleInputChange}
                     placeholder="Enter the Description (This is optional)"
-                    required
+                     
 
                   />
                 </div>
