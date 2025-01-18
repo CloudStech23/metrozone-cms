@@ -10,7 +10,7 @@ function Eventcsr() {
     programType: "Health",
     customProgramType: "",
     title: "",
-    description: "", 
+    description: "",
     eventDate: "",
     eventVenue: "",
     partner: "",
@@ -18,7 +18,7 @@ function Eventcsr() {
     beneficiarytext: "",
     value: "",
     quantity: "",
-    unittype: '',
+    unittype: "",
     quantvaluetext: "",
     images: [],
     mainImage: "",
@@ -59,8 +59,8 @@ function Eventcsr() {
         const downloadURL = await getDownloadURL(snapshot.ref);
         uploadImageUrls.push(downloadURL);
       } catch (error) {
-        console.error('Error uploading image:', error.message);
-        setError('Error uploading images. Please try again.');
+        console.error("Error uploading image:", error.message);
+        setError("Error uploading images. Please try again.");
       }
     }
 
@@ -74,7 +74,7 @@ function Eventcsr() {
         const snapshot = await uploadBytes(storageRef, mainImageFile);
         return await getDownloadURL(snapshot.ref);
       } catch (error) {
-        console.error('Error uploading main image:', error.message);
+        console.error("Error uploading main image:", error.message);
       }
     }
     return "";
@@ -84,28 +84,47 @@ function Eventcsr() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-  
+
+    // Check for main image
+    if (!mainImageFile) {
+      setError("Main image is required. Please upload a main image.");
+      setLoading(false);
+      return;
+    }
+
+    // Check for additional images
+    if (imageFiles.length === 0) {
+      alert(
+        "At least one additional image is required. Please upload images."
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       // Upload main image
       const mainImageUrl = await uploadMainImage();
-  
+
       // Upload additional images
       const uploadedImageUrls = await uploadImages();
-  
+
       // Final Program Type
-      const finalProgramType = eventData.programType === 'Other' ? eventData.customProgramType : eventData.programType;
-  
+      const finalProgramType =
+        eventData.programType === "Other"
+          ? eventData.customProgramType
+          : eventData.programType;
+
       // Save event data to Firestore with the creation timestamp
       await addDoc(collection(db, "events"), {
         ...eventData,
         programType: finalProgramType,
         mainImage: mainImageUrl,
         images: uploadedImageUrls,
-        createdAt: serverTimestamp(),  // <--- Setting the creation timestamp here
+        createdAt: serverTimestamp(),
       });
-  
+
       alert("Event added successfully!");
-  
+
       // Reset the form
       setEventData({
         programType: "Health",
@@ -119,7 +138,7 @@ function Eventcsr() {
         beneficiarytext: "",
         value: "",
         quantity: "",
-        unittype: '',
+        unittype: "",
         quantvaluetext: "",
         images: [],
         mainImage: "",
@@ -133,7 +152,6 @@ function Eventcsr() {
       setLoading(false);
     }
   };
-  
 
   if (loading) {
     return <Loader />;
@@ -191,7 +209,8 @@ function Eventcsr() {
                 <span style={{ fontSize: "0.8rem", fontWeight: "bold" }}>
                   (Max 50 characters)
                 </span>
-              </label><input
+              </label>
+              <input
                 type="text"
                 className="form-control"
                 id="title"
@@ -214,21 +233,21 @@ function Eventcsr() {
                 id="partner"
                 name="partner"
                 value={eventData.partner}
-                onChange={handleInputChange} 
+                onChange={handleInputChange}
                 placeholder="Enter partner"
                 required
               />
-
             </div>
 
-
             <div className="form-group mb-2">
-              <label htmlFor="description">Description <span className="text-danger">*</span></label>
+              <label htmlFor="description">
+                Description <span className="text-danger">*</span>
+              </label>
               <textarea
                 className="form-control"
                 id="description"
                 name="description"
-                rows='3'
+                rows="3"
                 value={eventData.description}
                 onChange={handleInputChange}
                 placeholder="Enter description"
@@ -257,7 +276,6 @@ function Eventcsr() {
                 value={eventData.beneficiarytext}
                 onChange={handleInputChange}
                 placeholder="Enter the description of beneficiary (This is optional)"
-                 
               />
             </div>
 
@@ -310,24 +328,18 @@ function Eventcsr() {
                     value={eventData.quantvaluetext}
                     onChange={handleInputChange}
                     placeholder="Enter the Description (This is optional)"
-                     
-
                   />
                 </div>
               </div>
             </div>
           </div>
 
-
-
-
-
-
-
           <div className="col-md-6 mb-2">
             {/* Event Date, Venue, etc. */}
             <div className="form-group mb-2">
-              <label htmlFor="eventDate">Event Date <span className="text-danger">*</span></label>
+              <label htmlFor="eventDate">
+                Event Date <span className="text-danger">*</span>
+              </label>
               <input
                 type="date"
                 className="form-control"
@@ -340,7 +352,9 @@ function Eventcsr() {
             </div>
 
             <div className="form-group mb-2">
-              <label htmlFor="eventVenue">Event Venue <span className="text-danger">*</span></label>
+              <label htmlFor="eventVenue">
+                Event Venue <span className="text-danger">*</span>
+              </label>
               <input
                 type="text"
                 className="form-control"
@@ -354,7 +368,7 @@ function Eventcsr() {
             </div>
 
             <div className="form-group mb-2">
-              <label htmlFor='mainImage' className='col-sm-3 col-form-label'>
+              <label htmlFor="mainImage" className="col-sm-3 col-form-label">
                 <strong>Main Image</strong>{" "}
                 <span className="text-danger">*</span>
               </label>
@@ -374,7 +388,8 @@ function Eventcsr() {
                 maxHeight: "350px",
                 overflowY: "auto",
                 overflowX: "hidden",
-              }}>
+              }}
+            >
               <table className="table">
                 <thead>
                   <tr>
@@ -397,102 +412,104 @@ function Eventcsr() {
                       </td>
                       <td>
                         <div>No images uploaded yet. Please add images.</div>
-                        <div className="mt-2 fw-bold text-danger">**You can upload multiple images at a time.**</div>
+                        <div className="mt-2 fw-bold text-danger">
+                          **You can upload multiple images at a time.**
+                        </div>
                       </td>
-
                     </tr>
                   )}
 
                   {/* Display uploaded images */}
-                  {imageFiles.length > 0 && imageFiles.map((file, index) => (
-                    <tr key={index}>
-                      <td className="col-md-8">
-                        <div className="row">
-                          <div className="col-md-4">
-                            <img
-                              src={URL.createObjectURL(file)}
-                              alt={`Preview ${index}`}
-                              width="100"
-                              height="100"
-                              style={{ objectFit: "cover" }}
-                              className="mb-2"
-                            />
+                  {imageFiles.length > 0 &&
+                    imageFiles.map((file, index) => (
+                      <tr key={index}>
+                        <td className="col-md-8">
+                          <div className="row">
+                            <div className="col-md-4">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`Preview ${index}`}
+                                width="100"
+                                height="100"
+                                style={{ objectFit: "cover" }}
+                                className="mb-2"
+                              />
+                            </div>
+                            <div className="col-md-8">
+                              <input
+                                type="file"
+                                className="form-control-file mb-2"
+                                onChange={handleImageChange}
+                                accept="image/*"
+                                multiple
+                              />
+                              <button
+                                className="btn btn-danger"
+                                onClick={() => handleDeleteImage(index)}
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
-                          <div className="col-md-8">
+                        </td>
+                        <td className="col-md-4">
+                          <div className="form-check">
                             <input
-                              type="file"
-                              className="form-control-file mb-2"
-                              onChange={handleImageChange}
-                              accept="image/*"
-                              multiple
+                              type="checkbox"
+                              className="form-check-input"
+                              id={`highRes-${index}`}
                             />
-                            <button
-                              className="btn btn-danger"
-                              onClick={() => handleDeleteImage(index)}
+                            <label
+                              className="form-check-label"
+                              htmlFor={`highRes-${index}`}
                             >
-                              Delete
-                            </button>
+                              is in Media ?
+                            </label>
                           </div>
-                        </div>
-                      </td>
-                      <td className="col-md-4">
-                        <div className="form-check">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id={`highRes-${index}`}
-                          />
-                          <label
-                            className="form-check-label"
-                            htmlFor={`highRes-${index}`}
-                          >
-                            is in Media ?
-                          </label>
-                        </div>
-                        <div className="form-check">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id={`includeWatermark-${index}`}
-                          />
-                          <label
-                            className="form-check-label"
-                            htmlFor={`includeWatermark-${index}`}
-                          >
-                            is in letter
-                          </label>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          <div className="form-check">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              id={`includeWatermark-${index}`}
+                            />
+                            <label
+                              className="form-check-label"
+                              htmlFor={`includeWatermark-${index}`}
+                            >
+                              is in letter
+                            </label>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
-            {
-              imageFiles.length > 0 && (
-                <div className="form-group mt-3">
-                  <label htmlFor="addMoreImages">Add More Images</label>
-                  {" "}
-                  <input
-                    type="file"
-                    className="form-control-file"
-                    onChange={handleImageChange}
-                    accept="image/*"
-                    multiple
-                  />
-                </div>
-              )
-            }
+            {imageFiles.length > 0 && (
+              <div className="form-group mt-3">
+                <label htmlFor="addMoreImages">Add More Images</label>{" "}
+                <input
+                  type="file"
+                  className="form-control-file"
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  multiple
+                />
+              </div>
+            )}
           </div>
         </div>
 
-
-        <button type="submit" className="btn btn-primary mt-3" disabled={loading}>
+        <button
+          type="submit"
+          className="btn btn-primary mt-3"
+          disabled={loading}
+        >
           Add Event
         </button>
         {error && <p className="text-danger mt-3">{error}</p>}
-      </form >
-    </div >
+      </form>
+    </div>
   );
 }
 
