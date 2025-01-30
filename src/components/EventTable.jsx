@@ -89,10 +89,11 @@ const EventTable = () => {
     }
   };
 
+  
   useEffect(() => {
     fetchEvents();
   }, []);
-
+   
   return (
     <div className="container mt-4">
       <div className="container d-flex flex-row gap-3 mb-4">

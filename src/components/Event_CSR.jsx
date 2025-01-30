@@ -55,8 +55,10 @@ function Eventcsr() {
       const storageRef = ref(storage, `events/${imageFile.name}`);
 
       try {
+        console.log(`Uploading ${imageFile.name}...`);
         const snapshot = await uploadBytes(storageRef, imageFile);
         const downloadURL = await getDownloadURL(snapshot.ref);
+        console.log(`Uploaded: ${downloadURL}`);
         uploadImageUrls.push(downloadURL);
       } catch (error) {
         console.error("Error uploading image:", error.message);
@@ -94,9 +96,7 @@ function Eventcsr() {
 
     // Check for additional images
     if (imageFiles.length === 0) {
-      alert(
-        "At least one additional image is required. Please upload images."
-      );
+      alert("At least one additional image is required. Please upload images.");
       setLoading(false);
       return;
     }
@@ -145,7 +145,7 @@ function Eventcsr() {
       });
       setImageFiles([]);
       setMainImageFile(null);
-      setImageUrls([]);
+      setImageUrls([]); 
     } catch (e) {
       setError("Error adding event: " + e.message);
     } finally {

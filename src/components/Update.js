@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { db, storage } from "../firebaseConfig"; // Adjust the import path as needed
+import React, { useState, useEffect, useMemo } from "react";
+import { db, storage } from "../firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import {
   ref,
@@ -11,7 +11,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Loader from "./Loader";
 
 const UpdateEvent = () => {
-  const { id } = useParams(); // Get the event ID from the URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const [eventData, setEventData] = useState({
     programType: "",
@@ -30,132 +30,130 @@ const UpdateEvent = () => {
     images: [],
     mainImage: "",
   });
-  const [mainImageFile, setMainImageFile] = useState(null); // Store selected main image
+  const [mainImageFile, setMainImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch event data on component mount
+  const memoizedPrograms = useMemo(() => [
+    "Health",
+    "Sports",
+    "Education",
+    "Womens Empowerment",
+  ], []);
+  
+
+  // const memoizedPrograms = useMemo(
+  //   () => predefinedPrograms,
+  //   [predefinedPrograms]
+  // );
+
   useEffect(() => {
     const fetchEvent = async () => {
-      const docRef = doc(db, "events", id);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const eventData = docSnap.data();
-        setEventData({
-          ...eventData,
-          programType: eventData.programType === "Health" || eventData.programType === "Sports" || eventData.programType === "Education" || eventData.programType === "Womens Empowerment"
-            ? eventData.programType
-            : "Other", // Check if the programType is not one of the predefined options
-          customProgramType: eventData.programType !== "Health" && eventData.programType !== "Sports" && eventData.programType !== "Education" && eventData.programType !== "Womens Empowerment"
-            ? eventData.programType
-            : "",
-        });
-        setMainImageFile(eventData.mainImage);
-      } else {
-        console.error("No such document!");
+      try {
+        const docRef = doc(db, "events", id);
+        const docSnap = await getDoc(docRef);
+  
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setEventData({
+            ...data,
+            programType: memoizedPrograms.includes(data.programType)
+              ? data.programType
+              : "Other",
+            customProgramType: memoizedPrograms.includes(data.programType)
+              ? ""
+              : data.programType,
+          });
+          setMainImageFile(data.mainImage);
+        } else {
+          console.error("No such document!");
+        }
+      } catch (error) {
+        console.error("Error fetching event:", error);
       }
     };
-
+  
     fetchEvent();
-  }, [id]);
+  }, [id, memoizedPrograms]); // No more warnings 🚀
+  
 
-  // Handle input changes for text fields
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEventData({ ...eventData, [name]: value });
+    setEventData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Delete an image from storage and Firestore
   const deleteImage = async (imageUrl) => {
     try {
-      const decodedUrl = decodeURIComponent(imageUrl);
-      const pathStartIndex = decodedUrl.indexOf("/o/") + 3; // Start after '/o/'
-      const pathEndIndex = decodedUrl.indexOf("?alt=");
-      const objectPath = decodedUrl.substring(pathStartIndex, pathEndIndex);
-      const imageRef = ref(storage, objectPath);
-      await deleteObject(imageRef);
-      console.log("File deleted successfully.");
+      if (!imageUrl) return;
+      const path = decodeURIComponent(imageUrl)
+        .split("/o/")[1]
+        .split("?alt=")[0];
+      await deleteObject(ref(storage, path));
     } catch (error) {
       console.error("Error deleting image:", error);
     }
   };
 
-  // Handle changes to the main image
+  const handleBrokenImage = (index) => {
+    setEventData((prev) => {
+      const updatedImages = prev.images.filter((_, i) => i !== index);
+      updateDoc(doc(db, "events", id), { images: updatedImages });
+      return { ...prev, images: updatedImages };
+    });
+  };
+
   const handleMainImageChange = async (e) => {
     try {
       const file = e.target.files[0];
       if (!file) return;
 
-      const filename = file.name;
-      const mainImageRef = ref(storage, `events/main/${filename}`);
+      const mainImageRef = ref(storage, `events/main/${file.name}`);
 
-      // Delete the previous main image if it exists
-      if (mainImageFile) {
-        await deleteImage(mainImageFile);
-      }
+      if (mainImageFile) await deleteImage(mainImageFile);
 
       const snapshot = await uploadBytes(mainImageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
-      setMainImageFile(downloadURL); // Update local state
-
-      const eventRef = doc(db, "events", id);
-      await updateDoc(eventRef, { mainImage: downloadURL }); // Update Firestore
+      setMainImageFile(downloadURL);
+      await updateDoc(doc(db, "events", id), { mainImage: downloadURL });
     } catch (error) {
-      console.error("Error handling main image:", error);
-      setError("Failed to upload new main image. Please try again.");
-    }
-    if (loading) {
-      return <Loader />;
+      console.error("Error updating main image:", error);
+      setError("Failed to upload main image. Please try again.");
     }
   };
 
-  // Handle adding new images
   const handleImageChange = async (e) => {
     try {
-      const files = e.target.files;
-      const newImageFiles = [];
+      const files = Array.from(e.target.files);
+      const newImages = await Promise.all(
+        files.map(async (file) => {
+          const snapshot = await uploadBytes(
+            ref(storage, `events/${file.name}`),
+            file
+          );
+          return getDownloadURL(snapshot.ref);
+        })
+      );
 
-      for (const file of files) {
-        const fileName = file.name;
-        const imageRef = ref(storage, `events/${fileName}`);
-
-        const snapshot = await uploadBytes(imageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-
-        newImageFiles.push(downloadURL);
-      }
-
-      const updatedImages = [...eventData.images, ...newImageFiles];
-      setEventData({ ...eventData, images: updatedImages });
-
-      // Update the Firestore document
-      const eventRef = doc(db, "events", id);
-      await updateDoc(eventRef, { images: updatedImages });
+      setEventData((prev) => {
+        const updatedImages = [...prev.images, ...newImages];
+        updateDoc(doc(db, "events", id), { images: updatedImages });
+        return { ...prev, images: updatedImages };
+      });
     } catch (error) {
-      console.error("Error handling image upload:", error);
-      setError("Failed to upload new image. Please try again.");
+      console.error("Error uploading images:", error);
+      setError("Failed to upload new images. Please try again.");
     }
   };
 
-
-  // Handle deleting an additional image
   const handleImageDelete = async (imageUrl, index) => {
     try {
-      const decodedUrl = decodeURIComponent(imageUrl);
-      const pathStartIndex = decodedUrl.indexOf("/o/") + 3;
-      const pathEndIndex = decodedUrl.indexOf("?alt=");
-      const objectPath = decodedUrl.substring(pathStartIndex, pathEndIndex);
-      const imageRef = ref(storage, objectPath);
-      await deleteObject(imageRef);
-
-      const updatedImages = eventData.images.filter((_, i) => i !== index);
-      setEventData({ ...eventData, images: updatedImages });
-
-      const eventRef = doc(db, "events", id);
-      await updateDoc(eventRef, { images: updatedImages });
-
+      await deleteImage(imageUrl);
+      setEventData((prev) => {
+        const updatedImages = prev.images.filter((_, i) => i !== index);
+        updateDoc(doc(db, "events", id), { images: updatedImages });
+        return { ...prev, images: updatedImages };
+      });
       alert("Image deleted successfully");
     } catch (error) {
       console.error("Error deleting image:", error);
@@ -163,25 +161,30 @@ const UpdateEvent = () => {
     }
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const eventRef = doc(db, "events", id);
-      const finalProgramType = eventData.programType === "Other" ? eventData.customProgramType : eventData.programType;
-
-      await updateDoc(eventRef, { ...eventData, programType: finalProgramType, mainImage: mainImageFile }); // Ensure main image is included in the update
-
+      const finalProgramType =
+        eventData.programType === "Other"
+          ? eventData.customProgramType
+          : eventData.programType;
+      await updateDoc(doc(db, "events", id), {
+        ...eventData,
+        programType: finalProgramType,
+        mainImage: mainImageFile,
+      });
       alert("Event updated successfully!");
-      navigate("/"); // Redirect to the main page or event list
+      navigate("/");
     } catch (error) {
-      console.error("Error updating document:", error);
-      setError("Error updating the eventData. Please try again.");
+      console.error("Error updating event:", error);
+      setError("Error updating event. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) return <Loader />;
 
   return (
     <div className="container mt-5">
@@ -299,7 +302,6 @@ const UpdateEvent = () => {
                 value={eventData.beneficiarytext}
                 onChange={handleInputChange}
                 placeholder="Enter the description of beneficiary (This field is not mandatory)"
-
               />
             </div>
             <div className="form-group mb-2">
@@ -351,7 +353,6 @@ const UpdateEvent = () => {
                     value={eventData.quantvaluetext}
                     onChange={handleInputChange}
                     placeholder="Enter the Description (This field is not mandatory)"
-
                   />
                 </div>
               </div>
@@ -427,7 +428,6 @@ const UpdateEvent = () => {
                           onChange={(e) => handleMainImageChange(e, id)}
                           accept="image/*"
                         />
-
                       </div>
                     </div>
                   </div>
@@ -490,6 +490,7 @@ const UpdateEvent = () => {
                                 marginRight: "10px",
                                 borderRadius: "4px",
                               }}
+                              onError={() => handleBrokenImage(index)}
                             />
                           </div>
                         )}
@@ -515,9 +516,7 @@ const UpdateEvent = () => {
               </div>
               <span className="row mt-2">
                 <div className="col-md-4">
-                  <label>
-                    Add Images
-                  </label>
+                  <label>Add Images</label>
                 </div>
                 <div className="col-md-7">
                   <input
@@ -560,9 +559,9 @@ const UpdateEvent = () => {
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? "Updating..." : "Update Event"}
         </button>
-      </form >
+      </form>
       {error && <p className="text-danger mt-3">{error}</p>}
-    </div >
+    </div>
   );
 };
 
